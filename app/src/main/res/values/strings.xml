@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">NewBand</string>
+    <string name="title_activity_target_device">TargetDeviceActivity</string>
+    <string name="action_settings">Settings</string>
+    <string name="rate_recycle_result">心率:%1$s</string>
+    <string name="step_cal_recycle_result">步数:%1$s,卡路里:%2$s</string>
+    <string name="scan_hit_count">扫描:%1$d次，连接:%2$d次</string>
+</resources>
