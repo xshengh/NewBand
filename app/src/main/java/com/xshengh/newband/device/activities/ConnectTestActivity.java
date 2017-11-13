@@ -1,6 +1,7 @@
 package com.xshengh.newband.device.activities;
 
 import android.app.Activity;
+import android.bluetooth.BluetoothGattCharacteristic;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -9,39 +10,46 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.clj.fastble.BleManager;
+import com.clj.fastble.conn.BleCharacterCallback;
 import com.clj.fastble.data.ScanResult;
+import com.clj.fastble.exception.BleException;
+import com.clj.fastble.utils.HexUtil;
 import com.xshengh.newband.R;
 import com.xshengh.newband.scanner.BleScanManager;
+import com.xshengh.newband.utils.Constants;
 
 public class ConnectTestActivity extends Activity {
 
     private EditText mEditMac;
     private Button mGoTest;
-    private BleScanManager mBleManager;
     private TextView mTextStatus;
     private TextView mTextCount;
     private Handler mHandler = new Handler(Looper.getMainLooper());
     private int count = 0;
     private int hit = 0;
-    private Runnable mRunnable = new Runnable() {
-        @Override
-        public void run() {
-            mBleManager.closeConnect();
-            scanAndConnectByMac();
-        }
-    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_connect_test);
         mEditMac = (EditText) findViewById(R.id.et_mac);
-        mBleManager = BleScanManager.getInstance(this);
         mGoTest = (Button) findViewById(R.id.btn_test);
         mTextStatus = (TextView) findViewById(R.id.tv_status);
         mTextCount = (TextView) findViewById(R.id.tv_count);
+        mGoTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                scanAndConnectByMac();
+                mGoTest.setEnabled(false);
+            }
+        });
+    }
 
-        mBleManager.setScanCallback(new BleScanManager.Callback() {
+    private void scanAndConnectByMac() {
+        String mac = mEditMac.getText().toString();
+        final BleScanManager manager = new BleScanManager(this);
+
+        manager.setScanCallback(new BleScanManager.Callback() {
             @Override
             public void onStartScan() {
                 mTextStatus.setText("开始扫描");
@@ -75,13 +83,12 @@ public class ConnectTestActivity extends Activity {
                 mTextStatus.setText("连接成功");
                 hit++;
                 mTextCount.setText(getString(R.string.scan_hit_count, count, hit));
-                mHandler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        mBleManager.closeConnect();
-
-                    }
-                }, 500);
+//                mHandler.postDelayed(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        manager.closeConnect();
+//                    }
+//                }, 500);
             }
 
             @Override
@@ -92,22 +99,51 @@ public class ConnectTestActivity extends Activity {
 
             @Override
             public void onServicesDiscovered() {
-            }
-        });
-        mGoTest.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mBleManager.closeConnect();
-                scanAndConnectByMac();
-                mGoTest.setEnabled(false);
-            }
-        });
-    }
-    private void scanAndConnectByMac() {
-        mHandler.removeCallbacks(mRunnable);
-        String mac = mEditMac.getText().toString();
-        mBleManager.scanAndConnectByMac(mac ,7000);
-        mHandler.postDelayed(mRunnable, 15000);
+//                manager.closeConnect();
+                manager.notify(Constants.UUID_SERVICE, Constants.UUID_READ_NOTIFY, new BleCharacterCallback() {
+                    @Override
+                    public void onSuccess(BluetoothGattCharacteristic characteristic) {
+                        if (characteristic != null) {
+                            byte[] res = characteristic.getValue();
+                            System.out.println("return value : " + HexUtil.encodeHexStr(res) + ", length :" + res.length);
+                        }
+                    }
 
+                    @Override
+                    public void onFailure(BleException exception) {
+                        System.out.println("Notify exception : " + exception);
+                    }
+
+                    @Override
+                    public void onInitiatedResult(boolean result) {
+                        System.out.println("Notify onInitiatedResult : " + result);
+                        if (result) {
+                            mHandler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    manager.write(Constants.UUID_SERVICE, Constants.UUID_WRITE, Constants.COMMAND_DISCONNECT_BLE, new BleCharacterCallback() {
+                                        @Override
+                                        public void onSuccess(BluetoothGattCharacteristic characteristic) {
+                                            System.out.println("Write disconnect command success : " + characteristic);
+                                        }
+
+                                        @Override
+                                        public void onFailure(BleException exception) {
+                                            System.out.println("Write exception : " + exception);
+                                        }
+
+                                        @Override
+                                        public void onInitiatedResult(boolean result) {
+                                            System.out.println("Write onInitiatedResult : " + result);
+                                        }
+                                    });
+                                }
+                            }, 2000);
+                        }
+                    }
+                });
+            }
+        });
+        manager.scanAndConnectByMac(mac, 7000);
     }
 }

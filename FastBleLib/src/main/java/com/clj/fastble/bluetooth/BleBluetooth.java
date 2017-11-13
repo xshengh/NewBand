@@ -291,14 +291,15 @@ public class BleBluetooth {
             refreshDeviceCache();
         }
 
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (bluetoothGatt != null) {
-                    bluetoothGatt.close();
-                }
-            }
-        }, 200);
+
+//        handler.postDelayed(new Runnable() {
+//            @Override
+//            public void run() {
+//                if (bluetoothGatt != null) {
+//                    bluetoothGatt.close();
+//                }
+//            }
+//        }, 200);
     }
 
     public void enableBluetoothIfDisabled() {
@@ -385,7 +386,10 @@ public class BleBluetooth {
         public void onDisConnected(BluetoothGatt gatt, int status, BleException exception) {
             BleLog.i("BleGattCallback：onDisConnected ");
 
-            closeBluetoothGatt();
+//            closeBluetoothGatt();
+            if (bluetoothGatt != null) {
+                bluetoothGatt.close();
+            }
             bluetoothGatt = null;
             Iterator iterator = callbackHashMap.entrySet().iterator();
             while (iterator.hasNext()) {

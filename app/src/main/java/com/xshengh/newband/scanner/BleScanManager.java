@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
 
 public class BleScanManager {
 
-    private static final int SCAN_TIMEOUT = 100000;
+    private static final int SCAN_TIMEOUT = 7000;
     private BleManager bleManager;
     private static BleScanManager sBleScanManager;
     private Handler mMainHandler = new Handler(Looper.getMainLooper());
@@ -51,9 +51,11 @@ public class BleScanManager {
         }
     };
 
-    private BleScanManager(Context context) {
+    public BleScanManager(Context context) {
         bleManager = new BleManager(context.getApplicationContext());
-        bleManager.enableBluetooth();
+        if (!bleManager.isBlueEnable()) {
+            bleManager.enableBluetooth();
+        }
     }
 
     public static synchronized BleScanManager getInstance(Context context) {
