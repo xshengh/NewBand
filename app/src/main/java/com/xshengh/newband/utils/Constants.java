@@ -9,7 +9,7 @@ public class Constants {
     public static final String UUID_READ_NOTIFY = "00005303-0000-0041-4C50-574953450000";
     public static final String UUID_WRITE = "00005302-0000-0041-4C50-574953450000";
 
-    public static final String RETURN_RATE_PREFIX = "8D";
+    public static final String RETURN_RATE_PREFIX = "8F";
     public static final String BT_PREFIX = "BT";
 //    public static final String COMMAND_EXERCISE_MODE_ON = "3801";
     public static final String COMMAND_EXERCISE_MODE_ON = "7F02";
@@ -22,6 +22,10 @@ public class Constants {
     public static final String COMMAND_RECEIVE_STEP_PEEFIX = "82";
     public static final String COMMAND_PREFIX_SET_TIME = "31";
     public static final String COMMAND_DISCONNECT_BLE = "F3";
+    public static final String COMMAND_EXERCISE_MODE_OFF = "7F03";
+
+    public static final String COMMAND_ACK1 = "91";
+    public static final String COMMAND_ACK2 = "94";
 
     //Byte length
     public static final int BYTE_LEN_MAC = 6;

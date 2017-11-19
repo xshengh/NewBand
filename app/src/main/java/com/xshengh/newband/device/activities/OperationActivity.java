@@ -34,7 +34,7 @@ public class OperationActivity extends AppCompatActivity implements View.OnClick
         }
         initViews();
         mBleScanManager = BleScanManager.getInstance(this);
-        mBleScanManager.setNotifyOn(new BleScanManager.Callback3() {
+        mBleScanManager.setBleScanCallback(new BleScanManager.Callback3() {
             @Override
             public void onStart() {
             }
@@ -50,7 +50,12 @@ public class OperationActivity extends AppCompatActivity implements View.OnClick
             }
 
             @Override
-            public boolean isStepFetching() {
+            public boolean isRateFetched() {
+                return false;
+            }
+
+            @Override
+            public boolean isStepFetched() {
                 return false;
             }
 

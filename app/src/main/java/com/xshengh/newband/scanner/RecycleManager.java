@@ -8,6 +8,7 @@ import com.clj.fastble.data.ScanResult;
 import com.clj.fastble.exception.BleException;
 import com.xshengh.newband.models.DeviceInfo;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -54,6 +55,7 @@ public class RecycleManager {
     }
 
     public void stopRecycle() {
+        System.out.println("-------stopRecycle------");
         if (mScanManager != null) {
             mScanManager.closeConnect();
             isStopped = true;
@@ -62,8 +64,6 @@ public class RecycleManager {
 
     private void connectNext() {
         if (!isStopped) {
-            mScanManager.setScanCallback(null);
-            mScanManager.closeConnect();
             mScanManager.setScanCallback(new BleScanManager.Callback() {
                 @Override
                 public void onStartScan() {
@@ -125,12 +125,12 @@ public class RecycleManager {
                 @Override
                 public void onDisConnected() {
                     System.out.println("----- onDisConnected");
-                    postDelayed(new Runnable() {
+                    post(new Runnable() {
                         @Override
                         public void run() {
                             connectNext();
                         }
-                    }, 1500);
+                    });
                 }
 
                 @Override
@@ -155,13 +155,13 @@ public class RecycleManager {
     }
 
     private void measureHeartRate() {
-        mScanManager.setNotifyOn(new BleScanManager.Callback3() {
+        mScanManager.setBleScanCallback(new BleScanManager.Callback3() {
             boolean rated = false;
             boolean stepd = false;
 
             @Override
             public void onStart() {
-                System.out.println("----- setNotify OnStart");
+                System.out.println("----- setBleScanCallback OnStart");
                 rated = false;
                 stepd = false;
             }
@@ -177,13 +177,18 @@ public class RecycleManager {
             }
 
             @Override
-            public boolean isStepFetching() {
+            public boolean isRateFetched() {
+                return rated;
+            }
+
+            @Override
+            public boolean isStepFetched() {
                 return stepd;
             }
 
             @Override
             public void onRateDataReceived(final byte[] data) {
-                rated = true;
+                System.out.println("----- xushenghua ------ data : " + Arrays.toString(data));
                 if (mCallback != null) {
                     post(new Runnable() {
                         @Override
@@ -196,35 +201,21 @@ public class RecycleManager {
 
             @Override
             public void onStepDataReceived(final byte[] data1, final byte[] data2) {
-                stepd = true;
                 if (mCallback != null) {
                     post(new Runnable() {
                         @Override
                         public void run() {
                             mCallback.onFetchStepAndCal(mCurrentDevice, data1, data2);
+                            mCallback.onRecycleFinish(mCurrentDevice);
                         }
                     });
                 }
-                post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (mCallback != null) {
-                            mCallback.onRecycleFinish(mCurrentDevice);
-                        }
-                        mScanManager.stopNotify();
-                        postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                mScanManager.closeConnect();
-                            }
-                        }, 1000);
-                    }
-                });
             }
 
             @Override
             public void onReceiveFail(BleException exception) {
                 mCallback.onRecycleFailed(mCurrentDevice);
+                System.out.println("------- onReceiveFail ------");
                 mScanManager.closeConnect();
             }
 

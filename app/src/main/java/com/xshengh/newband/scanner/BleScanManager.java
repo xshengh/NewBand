@@ -1,6 +1,5 @@
 package com.xshengh.newband.scanner;
 
-
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Context;
@@ -30,24 +29,19 @@ public class BleScanManager {
     private Callback2 mCallback2 = null;
 
     private Callback3 mCallback3;
+    private String mCurrentWriteCmd;
     private Runnable mRateTimeout = new Runnable() {
         @Override
         public void run() {
-            System.out.println("------ start time : " + System.currentTimeMillis());
-            System.out.println("---- rate time out");
-            if (mCallback3 != null) {
-                mCallback3.onRateDataReceived(null);
-            }
+            System.out.println("------- rate timeout");
             fetchStepRecord();
         }
     };
     private Runnable mStepTimeout = new Runnable() {
         @Override
         public void run() {
-            if (mCallback3 != null) {
-                System.out.println("---- step time out");
-                mCallback3.onStepDataReceived(null, null);
-            }
+            System.out.println("---- step time out");
+            closeConnect();
         }
     };
 
@@ -75,11 +69,13 @@ public class BleScanManager {
     public void setScanCallback(Callback callback) {
         mCallback = callback;
     }
-    public void setNotifyOn(final Callback3 callback) {
+
+    public void setBleScanCallback(final Callback3 callback) {
         mCallback3 = callback;
     }
 
     private void writeBTDevice(String command, BleCharacterCallback callback) {
+        mCurrentWriteCmd = command;
         write(Constants.UUID_SERVICE, Constants.UUID_WRITE, command, callback);
     }
 
@@ -98,28 +94,43 @@ public class BleScanManager {
         });
         notifyBTDevice(new BleCharacterCallback() {
             @Override
-            public void onSuccess(BluetoothGattCharacteristic characteristic) {
-                if (characteristic != null) {
-                    byte[] res = characteristic.getValue();
-                    System.out.println("return value : " + HexUtil.encodeHexStr(res) + ", length :" + res.length);
-                    if (res.length >= 1) {
-                        String prefix = HexUtil.extractData(res, 0);
-                        if (Constants.RETURN_RATE_PREFIX.equalsIgnoreCase(prefix) && res.length == 4) {
-                            if (mCallback3 != null) {
-                                if (!mCallback3.isStepFetching()) {
-                                    mMainHandler.removeCallbacks(mRateTimeout);
-                                    post(mRateTimeout);
+            public void onSuccess(final BluetoothGattCharacteristic characteristic) {
+                mMainHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (characteristic != null) {
+                            final byte[] res = characteristic.getValue();
+                            System.out.println("return value : " + HexUtil.encodeHexStr(res) + ", length :" + res.length);
+                            if (res.length >= 1) {
+                                String prefix = HexUtil.extractData(res, 0);
+                                System.out.println("------- cmd : " + mCurrentWriteCmd + ", prefix : " + prefix);
+                                if (Constants.COMMAND_ACK2.equalsIgnoreCase(prefix)) {
+                                    if (Constants.COMMAND_EXERCISE_MODE_ON.equalsIgnoreCase(mCurrentWriteCmd)) {
+                                        fetchHeartRate();
+//                                    } else if (Constants.COMMAND_EXERCISE_MODE_OFF.equalsIgnoreCase(mCurrentWriteCmd)) {
+//                                        fetchStepRecord();
+                                    }
+                                } else if (Constants.COMMAND_ACK1.equalsIgnoreCase(prefix)) {
+                                } else if (Constants.RETURN_RATE_PREFIX.equalsIgnoreCase(prefix) && res.length == 16) {
+                                    if (mCallback3 != null && !mCallback3.isRateFetched()) {
+                                        if (!mCallback3.isStepFetched()) {
+                                            mMainHandler.removeCallbacks(mRateTimeout);
+                                        }
+                                        mCallback3.onRateDataReceived(Arrays.copyOfRange(res, 13, 14));
+                                        fetchStepRecord();
+                                    }
+                                } else if (Constants.COMMAND_RECEIVE_STEP_PEEFIX.equalsIgnoreCase(prefix) && res.length == 19) {
+                                    if (mCallback3 != null) {
+                                        mMainHandler.removeCallbacks(mStepTimeout);
+                                        mCallback3.onStepDataReceived(Arrays.copyOfRange(res, 7, 11), Arrays.copyOfRange(res, 11, 13));
+                                        System.out.println("-------onStepDataReceived-------");
+                                        closeConnect();
+                                    }
                                 }
-                                mCallback3.onRateDataReceived(Arrays.copyOfRange(res, 3, 4));
                             }
-                        } else if (Constants.COMMAND_RECEIVE_STEP_PEEFIX.equalsIgnoreCase(prefix) && res.length == 19) {
-                            if (mCallback3 != null) {
-                                mMainHandler.removeCallbacks(mStepTimeout);
-                            }
-                            mCallback3.onStepDataReceived(Arrays.copyOfRange(res, 7, 11), Arrays.copyOfRange(res, 11, 13));
                         }
                     }
-                }
+                });
             }
 
             @Override
@@ -127,23 +138,19 @@ public class BleScanManager {
                 if (mCallback3 != null) {
                     mCallback3.onReceiveFail(exception);
                 }
-                System.out.println("----- exception : " + exception);
+                System.out.println("----- notifyBTDevice exception : " + exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
                 System.out.println("----- init result : " + result);
                 if (result) {
-                    post(new Runnable() {
+                    postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            if (alarmCommand != null) {
-                                setAlarm(alarmCommand);
-                            } else {
-                                setTime();
-                            }
+                            setTime(alarmCommand);
                         }
-                    });
+                    }, 2000);
                 } else {
                     mCallback3.onReceiveFail(null);
                     System.out.println("----- init failed");
@@ -171,7 +178,7 @@ public class BleScanManager {
         return time;
     }
 
-    private void setTime() {
+    private void setTime(final byte[] alarmCommand) {
         writeBTDevice(Constants.COMMAND_PREFIX_SET_TIME + HexUtil.encodeHexStr(getCurrentTimeByteArr()), new BleCharacterCallback() {
             @Override
             public void onSuccess(BluetoothGattCharacteristic characteristic) {
@@ -179,7 +186,11 @@ public class BleScanManager {
                 post(new Runnable() {
                     @Override
                     public void run() {
-                        openExerciseMode();
+                        if (alarmCommand != null) {
+                            setAlarm(alarmCommand);
+                        } else {
+                            openExerciseMode();
+                        }
                     }
                 });
             }
@@ -191,7 +202,7 @@ public class BleScanManager {
 
             @Override
             public void onInitiatedResult(boolean result) {
-
+                System.out.println("----- settime result : " + result);
             }
         });
     }
@@ -201,22 +212,35 @@ public class BleScanManager {
             @Override
             public void onSuccess(BluetoothGattCharacteristic characteristic) {
                 System.out.println("------ write exercise mode on success");
-                post(new Runnable() {
-                    @Override
-                    public void run() {
-                        fetchHeartRate();
-                    }
-                });
             }
 
             @Override
             public void onFailure(BleException exception) {
-                System.out.println("----- write exception : " + exception);
+                System.out.println("----- openExerciseMode write exception : " + exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
-                System.out.println("----- init result : " + result);
+                System.out.println("----- openExerciseMode init result : " + result);
+            }
+        });
+    }
+
+    private void exitExerciseMode() {
+        writeBTDevice(Constants.COMMAND_EXERCISE_MODE_OFF, new BleCharacterCallback() {
+            @Override
+            public void onSuccess(BluetoothGattCharacteristic characteristic) {
+                System.out.println("------ write exercise mode off success");
+            }
+
+            @Override
+            public void onFailure(BleException exception) {
+                System.out.println("----- exitExerciseMode write exception : " + exception);
+            }
+
+            @Override
+            public void onInitiatedResult(boolean result) {
+                System.out.println("----- exitExerciseMode init result : " + result);
             }
         });
     }
@@ -233,7 +257,7 @@ public class BleScanManager {
 
             @Override
             public void onFailure(BleException exception) {
-                System.out.println("----- exception : " + exception);
+                System.out.println("----- fetchHeartRate exception : " + exception);
             }
 
             @Override
@@ -246,7 +270,7 @@ public class BleScanManager {
 
     private void fetchStepRecord() {
         if (mCallback3 != null) {
-            mCallback3.onStartFetchRate();
+            mCallback3.onStartFetchStep();
         }
         writeBTDevice(Constants.COMMAND_SEND_STEP, new BleCharacterCallback() {
             @Override
@@ -256,7 +280,7 @@ public class BleScanManager {
 
             @Override
             public void onFailure(BleException exception) {
-                System.out.println("----- exception : " + exception);
+                System.out.println("----- fetchStepRecord exception : " + exception);
             }
 
             @Override
@@ -273,6 +297,7 @@ public class BleScanManager {
         writeBTDevice(c, new BleCharacterCallback() {
             @Override
             public void onSuccess(BluetoothGattCharacteristic characteristic) {
+                System.out.println("------- set alarm success");
                 if (mCallback3 != null) {
                     boolean open = command[0] == 1;
                     if (open) {
@@ -282,24 +307,23 @@ public class BleScanManager {
                     } else {
                         mCallback3.onAlarmCancel();
                     }
+                    post(new Runnable() {
+                        @Override
+                        public void run() {
+                            openExerciseMode();
+                        }
+                    });
                 }
-                post(new Runnable() {
-                    @Override
-                    public void run() {
-                        setTime();
-                    }
-                });
-                System.out.println("------- set alarm success");
             }
 
             @Override
             public void onFailure(BleException exception) {
-                System.out.println("----- exception : " + exception);
+                System.out.println("----- setAlarm exception : " + exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
-
+                System.out.println("----- setAlarm init result : " + result);
             }
         });
     }
@@ -316,12 +340,11 @@ public class BleScanManager {
 
             @Override
             public void onFailure(BleException exception) {
-                System.out.println("----- exception : " + exception);
+                System.out.println("----- setAlarm exception : " + exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
-
             }
         });
     }
@@ -344,7 +367,7 @@ public class BleScanManager {
                 if (mCallback3 != null) {
                     mCallback3.onReceiveFail(exception);
                 }
-                System.out.println("----- exception : " + exception);
+                System.out.println("----- cancelAlarm exception : " + exception);
             }
 
             @Override
@@ -361,30 +384,6 @@ public class BleScanManager {
         String command = Constants.COMMAND_PREFIX_ENABLE_ALARM + minuteHex + hourHex + Constants.COMMAND_POSTFIX_ALARM;
         System.out.println("-------- command " + command);
         return command;
-    }
-
-    public void stopNotify() {
-        writeBTDevice(Constants.COMMAND_DISCONNECT_BLE, new BleCharacterCallback() {
-            @Override
-            public void onSuccess(BluetoothGattCharacteristic characteristic) {
-                System.out.println("------- write disconncet ble command success");
-            }
-
-            @Override
-            public void onFailure(BleException exception) {
-                System.out.println("------- write disconncet ble command fail : " + exception);
-            }
-
-            @Override
-            public void onInitiatedResult(boolean result) {
-            }
-        });
-        postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                stopNotify(Constants.UUID_SERVICE, Constants.UUID_READ_NOTIFY);
-            }
-        }, 1000);
     }
 
     public void setConnectCallback(Callback2 callback) {
@@ -421,7 +420,9 @@ public class BleScanManager {
 
         void onStartFetchStep();
 
-        boolean isStepFetching();
+        boolean isRateFetched();
+
+        boolean isStepFetched();
 
         void onRateDataReceived(byte[] rate);
 
@@ -658,8 +659,32 @@ public class BleScanManager {
         bleManager.stopIndicate(uuid_service, uuid_indicate);
     }
 
+//    public void closeConnect() {
+//        bleManager.closeBluetoothGatt();
+//    }
+
     public void closeConnect() {
-        bleManager.closeBluetoothGatt();
+        postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("-------- close connect ------");
+                writeBTDevice(Constants.COMMAND_DISCONNECT_BLE, new BleCharacterCallback() {
+                    @Override
+                    public void onSuccess(BluetoothGattCharacteristic characteristic) {
+                        System.out.println("------- write disconncet ble command success");
+                    }
+
+                    @Override
+                    public void onFailure(BleException exception) {
+                        System.out.println("------- write disconncet ble command fail : " + exception);
+                    }
+
+                    @Override
+                    public void onInitiatedResult(boolean result) {
+                    }
+                });
+            }
+        }, 2000);
     }
 
     private void runOnMainThread(Runnable runnable) {
@@ -675,6 +700,6 @@ public class BleScanManager {
     }
 
     private void postDelayed(Runnable runnable, long delay) {
-        mMainHandler.postDelayed(runnable, delay + 500);
+        mMainHandler.postDelayed(runnable, delay);
     }
 }
