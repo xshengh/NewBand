@@ -1,12 +1,15 @@
 package com.xshengh.newband.socket;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.support.v7.app.AlertDialog;
+import android.widget.Toast;
 
 import com.clj.fastble.utils.HexUtil;
+import com.xshengh.newband.BandApplication;
 import com.xshengh.newband.device.activities.RecycleActivity;
 import com.xshengh.newband.models.DeviceInfo;
 import com.xshengh.newband.scanner.BleScanManager;
@@ -26,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Created by xshengh on 17/7/2.
@@ -137,12 +141,21 @@ public class SocketClientManager {
                                 if (count > 0) {
                                     byte[] content = new byte[count];
                                     in.read(content, 0, content.length);
-                                    int len = content.length;
+                                    final int len = content.length;
                                     if (len == 1 && content[0] == (byte)0xFE) {
                                         if (callback1!= null) {
                                             callback1.onStartConnect();
                                         }
                                     } else if (len != 0 && len % (Constants.BYTE_SIZE_RECEIVE_UNIT) == 0) {
+                                        if (BandApplication.getInstance() != null) {
+                                            Handler handler = new Handler(Looper.getMainLooper());
+                                            handler.post(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    Utils.showToast(BandApplication.getInstance(), String.format(Locale.getDefault(), "收到的字节数%d", len));
+                                                }
+                                            });
+                                        }
                                         devices.clear();
                                         int i = 0;
                                         while (i < len) {
@@ -153,6 +166,10 @@ public class SocketClientManager {
                                             byte[] timeBytes = Arrays.copyOfRange(content, i, i += Constants.BYTE_LEN_ALARM);
                                             System.out.println("-------alarm : " + Arrays.toString(timeBytes));
                                             device.setAlarm(timeBytes);
+//                                            byte exerciseOnoff = Arrays.copyOfRange(content, i, i+= Constants.BYTE_LEN_EXERCISE;
+                                            byte exerciseOnoff = content[i++];
+                                            device.setExerciseOnOff((int)exerciseOnoff);
+                                            System.out.println("-------exercise : " + device.getExerciseOnOff());
                                             devices.add(device);
                                             System.out.println("------ size : " + devices.size() + ", list : " + devices);
                                         }

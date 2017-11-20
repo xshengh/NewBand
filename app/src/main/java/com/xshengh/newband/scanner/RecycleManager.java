@@ -140,7 +140,7 @@ public class RecycleManager {
                         @Override
                         public void run() {
                             mCallback.onRecycling(mCurrentDevice);
-                            measureHeartRate();
+                            startWork();
                         }
                     });
                 }
@@ -154,7 +154,7 @@ public class RecycleManager {
         }
     }
 
-    private void measureHeartRate() {
+    private void startWork() {
         mScanManager.setBleScanCallback(new BleScanManager.Callback3() {
             boolean rated = false;
             boolean stepd = false;
@@ -232,7 +232,8 @@ public class RecycleManager {
         post(new Runnable() {
             @Override
             public void run() {
-                mScanManager.notifyBandData(mCurrentDevice.getAlarm());
+                System.out.println("------ exercise mode " + mCurrentDevice.getExerciseOnOff());
+                mScanManager.notifyBandData(mCurrentDevice.getExerciseOnOff(), mCurrentDevice.getAlarm());
             }
         });
     }

@@ -21,6 +21,7 @@ public class DeviceInfo implements Parcelable {
     private byte wtime;
     private int status;
     private int retryCount;
+    private int exerciseOnOff;
 
     public byte getCtime() {
         return ctime;
@@ -57,6 +58,7 @@ public class DeviceInfo implements Parcelable {
         retryCount = in.readInt();
         ctime = in.readByte();
         wtime = in.readByte();
+        exerciseOnOff = in.readInt();
     }
 
     public static final Creator<DeviceInfo> CREATOR = new Creator<DeviceInfo>() {
@@ -141,6 +143,14 @@ public class DeviceInfo implements Parcelable {
         return "";
     }
 
+    public int getExerciseOnOff() {
+        return exerciseOnOff;
+    }
+
+    public void setExerciseOnOff(int exerciseOnOff) {
+        this.exerciseOnOff = exerciseOnOff;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -157,5 +167,6 @@ public class DeviceInfo implements Parcelable {
         dest.writeInt(retryCount);
         dest.writeByte(ctime);
         dest.writeByte(wtime);
+        dest.writeInt(exerciseOnOff);
     }
 }

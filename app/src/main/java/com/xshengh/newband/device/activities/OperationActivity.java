@@ -97,7 +97,7 @@ public class OperationActivity extends AppCompatActivity implements View.OnClick
     }
 
     private void startWork() {
-        mBleScanManager.notifyBandData(null);
+        mBleScanManager.notifyBandData(2, null);
     }
 
     private void initViews() {

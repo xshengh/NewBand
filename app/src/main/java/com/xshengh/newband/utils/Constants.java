@@ -35,7 +35,8 @@ public class Constants {
     public static final int BYTE_LEN_CAL = 2;
     public static final int BYTE_LEN_ALARM = 3;
     public static final int BYTE_LEN_TIME = 2;
-    public static final int BYTE_SIZE_RECEIVE_UNIT = BYTE_LEN_MAC + BYTE_LEN_ALARM;
+    public static final int BYTE_LEN_EXERCISE = 1;
+    public static final int BYTE_SIZE_RECEIVE_UNIT = BYTE_LEN_MAC + BYTE_LEN_ALARM + BYTE_LEN_EXERCISE;
     public static final int BYTE_SIZE_NAME_LIST = BYTE_LEN_MAC + BYTE_LEN_RSSI;
     public static final int BYTE_SIZE_DATA_LIST = BYTE_LEN_MAC + BYTE_LEN_RATE + BYTE_LEN_CAL + BYTE_LEN_STEP + BYTE_LEN_TIME;
 }

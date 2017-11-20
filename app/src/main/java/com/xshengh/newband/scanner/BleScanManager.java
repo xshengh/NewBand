@@ -83,7 +83,7 @@ public class BleScanManager {
         notify(Constants.UUID_SERVICE, Constants.UUID_READ_NOTIFY, callback);
     }
 
-    public void notifyBandData(final byte[] alarmCommand) {
+    public void notifyBandData(final int exerciseOnoff, final byte[] alarmCommand) {
         runOnMainThread(new Runnable() {
             @Override
             public void run() {
@@ -105,8 +105,9 @@ public class BleScanManager {
                                 String prefix = HexUtil.extractData(res, 0);
                                 System.out.println("------- cmd : " + mCurrentWriteCmd + ", prefix : " + prefix);
                                 if (Constants.COMMAND_ACK2.equalsIgnoreCase(prefix)) {
-                                    if (Constants.COMMAND_EXERCISE_MODE_ON.equalsIgnoreCase(mCurrentWriteCmd)) {
-                                        fetchHeartRate();
+                                    if (Constants.COMMAND_EXERCISE_MODE_ON.equalsIgnoreCase(mCurrentWriteCmd) || Constants.COMMAND_EXERCISE_MODE_OFF.equalsIgnoreCase(mCurrentWriteCmd)) {
+                                        closeConnect();
+//                                        fetchHeartRate();
 //                                    } else if (Constants.COMMAND_EXERCISE_MODE_OFF.equalsIgnoreCase(mCurrentWriteCmd)) {
 //                                        fetchStepRecord();
                                     }
@@ -148,7 +149,15 @@ public class BleScanManager {
                     postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            setTime(alarmCommand);
+                            if (exerciseOnoff == 1) {
+                                openExerciseMode();
+                            } else if (exerciseOnoff == 0) {
+                                exitExerciseMode();
+                            } else if (exerciseOnoff == 2) {
+                                setTime(alarmCommand);
+                            } else {
+                                closeConnect();
+                            }
                         }
                     }, 2000);
                 } else {
@@ -189,7 +198,7 @@ public class BleScanManager {
                         if (alarmCommand != null) {
                             setAlarm(alarmCommand);
                         } else {
-                            openExerciseMode();
+                            fetchHeartRate();
                         }
                     }
                 });
@@ -310,7 +319,7 @@ public class BleScanManager {
                     post(new Runnable() {
                         @Override
                         public void run() {
-                            openExerciseMode();
+                            fetchHeartRate();
                         }
                     });
                 }
