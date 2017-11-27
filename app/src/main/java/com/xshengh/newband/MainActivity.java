@@ -42,10 +42,13 @@ public class MainActivity extends AppCompatActivity {
         mProgressDialog = new ProgressDialog(this);
         mEditIP = (EditText) findViewById(R.id.et_ip);
         mEditPort = (EditText) findViewById(R.id.et_port);
-//        mEditIP.setText("192.168.12.151");
-//        mEditPort.setText("18087");
-        mEditIP.setText("192.168.0.104");
-        mEditPort.setText("9999");
+        if (BuildConfig.APP_TEST) {
+            mEditIP.setText("192.168.0.101");
+            mEditPort.setText("9999");
+        } else {
+            mEditIP.setText("192.168.12.151");
+            mEditPort.setText("18087");
+        }
         mBtnConnect = (Button) findViewById(R.id.btn_connect);
         mBtnDisconnect = (Button) findViewById(R.id.btn_disconnect);
         mBtnConnect.setOnClickListener(new View.OnClickListener() {
@@ -68,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
                 }, 2000);
             }
         });
-//        connectSocket();
+        connectSocket();
     }
 
     private void connectSocket() {

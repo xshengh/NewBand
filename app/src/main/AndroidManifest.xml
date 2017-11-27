@@ -14,16 +14,17 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <application
+        android:name=".BandApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:name=".BandApplication"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".device.activities.MenuActivity"></activity>
+        <activity android:name=".device.activities.MenuActivity" />
         <activity
             android:name=".alarm.AlarmActivity"
             android:windowSoftInputMode="adjustPan" />
@@ -37,7 +38,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".device.activities.ConnectTestActivity"></activity>
+        <activity android:name=".device.activities.ConnectTestActivity" />
+
+        <receiver
+            android:name=".BootCompleteReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

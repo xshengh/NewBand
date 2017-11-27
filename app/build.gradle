@@ -4,6 +4,7 @@ android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
     defaultConfig {
+        buildConfigField "boolean", "APP_TEST", "false"
         applicationId "com.xshengh.newband"
         minSdkVersion 21
         targetSdkVersion 25
