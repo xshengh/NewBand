@@ -3,7 +3,7 @@
 /local.properties
 /.idea
 .DS_Store
-/build
-FastBleLib/build
+build/
+FastBleLib/build/
 /captures
 .externalNativeBuild
