@@ -70,7 +70,7 @@ public class BleScanManager {
         mCallback = callback;
     }
 
-    public void setBleScanCallback(final Callback3 callback) {
+    public void setCollectDataCallback(final Callback3 callback) {
         mCallback3 = callback;
     }
 
@@ -107,11 +107,37 @@ public class BleScanManager {
                                 if (Constants.COMMAND_ACK2.equalsIgnoreCase(prefix)) {
                                     if (Constants.COMMAND_EXERCISE_MODE_ON.equalsIgnoreCase(mCurrentWriteCmd) || Constants.COMMAND_EXERCISE_MODE_OFF.equalsIgnoreCase(mCurrentWriteCmd)) {
                                         closeConnect();
-//                                        fetchHeartRate();
-//                                    } else if (Constants.COMMAND_EXERCISE_MODE_OFF.equalsIgnoreCase(mCurrentWriteCmd)) {
-//                                        fetchStepRecord();
                                     }
                                 } else if (Constants.COMMAND_ACK1.equalsIgnoreCase(prefix)) {
+                                    if (mCurrentWriteCmd != null) {
+                                        if (mCurrentWriteCmd.startsWith(Constants.COMMAND_PREFIX_SET_TIME)) {
+                                            if (exerciseOnoff == 1) {
+                                                openExerciseMode();
+                                            } else if (exerciseOnoff == 0) {
+                                                exitExerciseMode();
+                                            } else if (exerciseOnoff == 2) {
+                                                if (alarmCommand != null) {
+                                                    setAlarm(alarmCommand);
+                                                } else {
+                                                    fetchHeartRate();
+                                                }
+                                            } else {
+                                                closeConnect();
+                                            }
+                                        } else if (mCurrentWriteCmd.startsWith(Constants.COMMAND_PREFIX_ALARM)) {
+                                            if (mCallback3 != null) {
+                                                boolean open = alarmCommand[0] == 1;
+                                                if (open) {
+                                                    int minute = alarmCommand[1];
+                                                    int hour = alarmCommand[2];
+                                                    mCallback3.onAlarmSetup(hour, minute);
+                                                } else {
+                                                    mCallback3.onAlarmCancel();
+                                                }
+                                            }
+                                            fetchHeartRate();
+                                        }
+                                    }
                                 } else if (Constants.RETURN_RATE_PREFIX.equalsIgnoreCase(prefix) && res.length == 16) {
                                     if (mCallback3 != null && !mCallback3.isRateFetched()) {
                                         if (!mCallback3.isStepFetched()) {
@@ -136,38 +162,33 @@ public class BleScanManager {
 
             @Override
             public void onFailure(BleException exception) {
-                if (mCallback3 != null) {
-                    mCallback3.onReceiveFail(exception);
-                }
                 System.out.println("----- notifyBTDevice exception : " + exception);
+                notifyInitError(exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
                 System.out.println("----- init result : " + result);
                 if (result) {
-                    postDelayed(new Runnable() {
+                    post(new Runnable() {
                         @Override
                         public void run() {
-                            if (exerciseOnoff == 1) {
-                                openExerciseMode();
-                            } else if (exerciseOnoff == 0) {
-                                exitExerciseMode();
-                            } else if (exerciseOnoff == 2) {
-                                setTime(alarmCommand);
-                            } else {
-                                closeConnect();
-                            }
+                            setTime();
                         }
-                    }, 2000);
+                    });
                 } else {
-                    mCallback3.onReceiveFail(null);
-                    System.out.println("----- init failed");
+                    notifyInitError(null);
                 }
             }
         });
     }
 
+    private void notifyInitError(BleException e) {
+        if (mCallback3 != null) {
+            mCallback3.onReceiveFail(e);
+            System.out.println("----- init failed");
+        }
+    }
     private byte[] getCurrentTimeByteArr() {
         Calendar cal = Calendar.getInstance();
         int sec = cal.get(Calendar.SECOND);
@@ -187,31 +208,25 @@ public class BleScanManager {
         return time;
     }
 
-    private void setTime(final byte[] alarmCommand) {
+    private void setTime() {
         writeBTDevice(Constants.COMMAND_PREFIX_SET_TIME + HexUtil.encodeHexStr(getCurrentTimeByteArr()), new BleCharacterCallback() {
             @Override
             public void onSuccess(BluetoothGattCharacteristic characteristic) {
                 System.out.println("------ settime success");
-                post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (alarmCommand != null) {
-                            setAlarm(alarmCommand);
-                        } else {
-                            fetchHeartRate();
-                        }
-                    }
-                });
             }
 
             @Override
             public void onFailure(BleException exception) {
                 System.out.println("----- settime exception : " + exception);
+                notifyInitError(exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
                 System.out.println("----- settime result : " + result);
+                if (!result) {
+                    notifyInitError(null);
+                }
             }
         });
     }
@@ -226,11 +241,15 @@ public class BleScanManager {
             @Override
             public void onFailure(BleException exception) {
                 System.out.println("----- openExerciseMode write exception : " + exception);
+                notifyInitError(exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
                 System.out.println("----- openExerciseMode init result : " + result);
+                if(!result) {
+                    notifyInitError(null);
+                }
             }
         });
     }
@@ -245,11 +264,15 @@ public class BleScanManager {
             @Override
             public void onFailure(BleException exception) {
                 System.out.println("----- exitExerciseMode write exception : " + exception);
+                notifyInitError(exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
                 System.out.println("----- exitExerciseMode init result : " + result);
+                if(!result) {
+                    notifyInitError(null);
+                }
             }
         });
     }
@@ -267,10 +290,14 @@ public class BleScanManager {
             @Override
             public void onFailure(BleException exception) {
                 System.out.println("----- fetchHeartRate exception : " + exception);
+                notifyInitError(exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
+                if(!result) {
+                    notifyInitError(null);
+                }
             }
         });
         System.out.println("------ start time : " + System.currentTimeMillis());
@@ -290,11 +317,14 @@ public class BleScanManager {
             @Override
             public void onFailure(BleException exception) {
                 System.out.println("----- fetchStepRecord exception : " + exception);
+                notifyInitError(exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
-
+                if(!result) {
+                    notifyInitError(null);
+                }
             }
         });
         postDelayed(mStepTimeout, 2000);
@@ -307,32 +337,20 @@ public class BleScanManager {
             @Override
             public void onSuccess(BluetoothGattCharacteristic characteristic) {
                 System.out.println("------- set alarm success");
-                if (mCallback3 != null) {
-                    boolean open = command[0] == 1;
-                    if (open) {
-                        int minute = command[1];
-                        int hour = command[2];
-                        mCallback3.onAlarmSetup(hour, minute);
-                    } else {
-                        mCallback3.onAlarmCancel();
-                    }
-                    post(new Runnable() {
-                        @Override
-                        public void run() {
-                            fetchHeartRate();
-                        }
-                    });
-                }
             }
 
             @Override
             public void onFailure(BleException exception) {
                 System.out.println("----- setAlarm exception : " + exception);
+                notifyInitError(exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
                 System.out.println("----- setAlarm init result : " + result);
+                if(!result) {
+                    notifyInitError(null);
+                }
             }
         });
     }
@@ -350,10 +368,14 @@ public class BleScanManager {
             @Override
             public void onFailure(BleException exception) {
                 System.out.println("----- setAlarm exception : " + exception);
+                notifyInitError(exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
+                if(!result) {
+                    notifyInitError(null);
+                }
             }
         });
     }
@@ -373,14 +395,15 @@ public class BleScanManager {
 
             @Override
             public void onFailure(BleException exception) {
-                if (mCallback3 != null) {
-                    mCallback3.onReceiveFail(exception);
-                }
                 System.out.println("----- cancelAlarm exception : " + exception);
+                notifyInitError(exception);
             }
 
             @Override
             public void onInitiatedResult(boolean result) {
+                if(!result) {
+                    notifyInitError(null);
+                }
             }
         });
     }

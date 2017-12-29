@@ -34,7 +34,7 @@ public class OperationActivity extends AppCompatActivity implements View.OnClick
         }
         initViews();
         mBleScanManager = BleScanManager.getInstance(this);
-        mBleScanManager.setBleScanCallback(new BleScanManager.Callback3() {
+        mBleScanManager.setCollectDataCallback(new BleScanManager.Callback3() {
             @Override
             public void onStart() {
             }

@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         mEditIP = (EditText) findViewById(R.id.et_ip);
         mEditPort = (EditText) findViewById(R.id.et_port);
         if (BuildConfig.APP_TEST) {
-            mEditIP.setText("192.168.0.101");
+            mEditIP.setText("192.168.0.109");
             mEditPort.setText("9999");
         } else {
             mEditIP.setText("192.168.12.151");

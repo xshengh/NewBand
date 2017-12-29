@@ -155,13 +155,13 @@ public class RecycleManager {
     }
 
     private void startWork() {
-        mScanManager.setBleScanCallback(new BleScanManager.Callback3() {
+        mScanManager.setCollectDataCallback(new BleScanManager.Callback3() {
             boolean rated = false;
             boolean stepd = false;
 
             @Override
             public void onStart() {
-                System.out.println("----- setBleScanCallback OnStart");
+                System.out.println("----- setCollectDataCallback OnStart");
                 rated = false;
                 stepd = false;
             }
@@ -239,7 +239,7 @@ public class RecycleManager {
     }
 
     private void post(Runnable runnable) {
-        mMainHandler.postDelayed(runnable, 200);
+        mMainHandler.postDelayed(runnable, 500);
     }
 
     private void postDelayed(Runnable runnable, long delayMills) {
