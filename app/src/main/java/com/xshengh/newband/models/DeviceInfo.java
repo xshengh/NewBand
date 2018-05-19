@@ -3,7 +3,9 @@ package com.xshengh.newband.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.clj.fastble.utils.HexUtil;
 import com.xshengh.newband.utils.Constants;
+import com.xshengh.newband.utils.Utils;
 
 import java.util.Arrays;
 
@@ -39,8 +41,7 @@ public class DeviceInfo implements Parcelable {
         this.wtime = wtime;
     }
 
-    public DeviceInfo(String mac) {
-        this.mac = mac;
+    public DeviceInfo() {
         ctime = (byte) 0xFF;
         wtime = (byte) 0xFF;
         Arrays.fill(rate, (byte) 0xFF);
@@ -154,6 +155,20 @@ public class DeviceInfo implements Parcelable {
     @Override
     public int describeContents() {
         return 0;
+    }
+
+    public int unpack(int index, byte[] content) {
+        int i = index;
+        if (content != null) {
+            byte[] macBytes = Arrays.copyOfRange(content, i, i += Constants.BYTE_LEN_MAC);
+            this.mac = Utils.macWithColon(HexUtil.encodeHexStr(macBytes, false));
+            System.out.println("-------mac :" + mac);
+            this.alarm = Arrays.copyOfRange(content, i, i += Constants.BYTE_LEN_ALARM);
+            System.out.println("-------alarm : " + Arrays.toString(alarm));
+            this.exerciseOnOff = content[i++];
+            System.out.println("-------exercise : " + this.exerciseOnOff);
+        }
+        return i;
     }
 
     @Override

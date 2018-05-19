@@ -12,37 +12,34 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import com.clj.fastble.data.ScanResult;
 import com.clj.fastble.utils.HexUtil;
 import com.xshengh.newband.R;
 import com.xshengh.newband.adapters.ResultAdapter;
 import com.xshengh.newband.models.DeviceInfo;
-import com.xshengh.newband.scanner.BleScanManager;
+import com.xshengh.newband.scanner.ScanManager;
 import com.xshengh.newband.socket.SocketClientManager;
 import com.xshengh.newband.utils.Constants;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+
+import static com.xshengh.newband.utils.Utils.FIX_EXECUTOR;
 
 public class AnyScanActivity extends AppCompatActivity implements View.OnClickListener {
 
     private Button mStartBtn, mUploadBtn, mGoRecyleBtn;
     private ResultAdapter mResultAdapter;
-    private ProgressDialog progressDialog;
-    private BleScanManager mScanManager;
-    private ScanResult mCurDevice;
-    private Handler mMainHandler = new Handler(Looper.getMainLooper());
+    private ProgressDialog mProgressDialog;
+    private ScanManager mScanManager;
     private static final int REQUEST_CODE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_any_scan);
-        mScanManager = BleScanManager.getInstance(this);
+        mScanManager = ScanManager.getInstance(this);
         initView();
         // manual to auto
         scanDevice();
@@ -63,7 +60,8 @@ public class AnyScanActivity extends AppCompatActivity implements View.OnClickLi
         mGoRecyleBtn = (Button) findViewById(R.id.btn_go_recycle);
         mGoRecyleBtn.setOnClickListener(this);
         mGoRecyleBtn.setEnabled(false);
-        progressDialog = new ProgressDialog(this);
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setCancelable(false);
 
         mResultAdapter = new ResultAdapter(this);
         final ListView deviceListView = (ListView) findViewById(R.id.list_device);
@@ -76,7 +74,7 @@ public class AnyScanActivity extends AppCompatActivity implements View.OnClickLi
 //                mScanManager.connectDevice(mCurDevice);
             }
         });
-        SocketClientManager.getInstance().setCallback2(new SocketClientManager.Callback2() {
+        SocketClientManager.getInstance().setDataReceiveCallback(new SocketClientManager.DataReceiveCallback() {
             @Override
             public void onDataReceive(ArrayList<DeviceInfo> devices) {
                 // manual to auto
@@ -114,7 +112,7 @@ public class AnyScanActivity extends AppCompatActivity implements View.OnClickLi
 
     private void uploadData() {
         int count = mResultAdapter.getCount();
-        byte[] nameArr = new byte[count * Constants.BYTE_SIZE_NAME_LIST + 1];
+        final byte[] nameArr = new byte[count * Constants.BYTE_SIZE_NAME_LIST + 1];
         int index = 0;
         nameArr[index++] = (byte) 0xFE;
         for (int i = 0; i < count; i++) {
@@ -132,17 +130,23 @@ public class AnyScanActivity extends AppCompatActivity implements View.OnClickLi
                 System.out.println("---- byte : " + HexUtil.encodeHexStr(nameArr, false));
             }
         }
-        SocketClientManager.getInstance().sendBytes(nameArr);
+        FIX_EXECUTOR.execute(new Runnable() {
+            @Override
+            public void run() {
+                SocketClientManager.getInstance().sendData(nameArr);
+            }
+        });
         mGoRecyleBtn.setEnabled(true);
     }
 
     private void scanDevice() {
-        mScanManager.setScanCallback(new BleScanManager.Callback() {
+        mScanManager.setScanCallback(new ScanManager.ScanCallback() {
             @Override
             public void onStartScan() {
-                mMainHandler.post(new Runnable() {
+                runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        mProgressDialog.show();
                         mResultAdapter.clear();
                         mResultAdapter.notifyDataSetChanged();
                         mStartBtn.setEnabled(false);
@@ -153,57 +157,33 @@ public class AnyScanActivity extends AppCompatActivity implements View.OnClickLi
             }
 
             @Override
-            public void onScanning(ScanResult result) {
-                String name = result.getDevice().getName();
-                if (name != null && name.startsWith(Constants.BT_PREFIX)) {
-                    mResultAdapter.addResult(result);
-                    mResultAdapter.notifyDataSetChanged();
-                }
+            public void onScanning(final ScanResult scanResult) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String name = scanResult.getDevice().getName();
+//                        if (name != null && name.startsWith(Constants.BT_PREFIX)) {
+                        if (name != null) {
+                            mResultAdapter.addResult(scanResult);
+                            mResultAdapter.notifyDataSetChanged();
+                        }
+                    }
+                });
             }
 
             @Override
             public void onScanComplete() {
-                System.out.println("-----onScanComplete");
-                mStartBtn.setEnabled(true);
-                mUploadBtn.setEnabled(true);
-                // manual to auto
-                uploadData();
-            }
-
-            @Override
-            public void onConnecting() {
-                progressDialog.show();
-            }
-
-            @Override
-            public void onConnectFail() {
-                System.out.println("-----onConnectFail");
-                mStartBtn.setEnabled(true);
-                progressDialog.dismiss();
-                Toast.makeText(AnyScanActivity.this, "连接失败", Toast.LENGTH_LONG).show();
-            }
-
-            @Override
-            public void onConnectSuccess() {
-
-            }
-
-            @Override
-            public void onDisConnected() {
-                progressDialog.dismiss();
-                mResultAdapter.clear();
-                mResultAdapter.notifyDataSetChanged();
-                mStartBtn.setEnabled(true);
-                mUploadBtn.setVisibility(View.INVISIBLE);
-                Toast.makeText(AnyScanActivity.this, "连接断开", Toast.LENGTH_LONG).show();
-            }
-
-            @Override
-            public void onServicesDiscovered() {
-                progressDialog.dismiss();
-                Intent intent = new Intent(AnyScanActivity.this, OperationActivity.class);
-                intent.putExtra("device", mCurDevice);
-                startActivity(intent);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        System.out.println("-----onScanComplete");
+                        mStartBtn.setEnabled(true);
+                        mUploadBtn.setEnabled(true);
+                        // manual to auto
+//                        uploadData();
+                        mProgressDialog.dismiss();
+                    }
+                });
             }
         });
         mScanManager.scanDevice();

@@ -1,10 +1,14 @@
 package com.xshengh.newband.utils;
 
+import com.xshengh.newband.BuildConfig;
+
 /**
  * Created by xshengh on 17/6/22.
  */
 
 public class Constants {
+    public static final String HOST = BuildConfig.APP_TEST ? "192.168.0.102" : "192.168.12.151";
+    public static final int PORT = BuildConfig.APP_TEST ? 9999 : 18087;
     public static final String UUID_SERVICE = "00005301-0000-0041-4C50-574953450000";
     public static final String UUID_READ_NOTIFY = "00005303-0000-0041-4C50-574953450000";
     public static final String UUID_WRITE = "00005302-0000-0041-4C50-574953450000";
@@ -23,9 +27,14 @@ public class Constants {
     public static final String COMMAND_PREFIX_SET_TIME = "31";
     public static final String COMMAND_DISCONNECT_BLE = "F3";
     public static final String COMMAND_EXERCISE_MODE_OFF = "7F03";
+    public static final String COMMAND_MESSAGE_SIGNAL = "73";
+    public static final String COMMAND_SENDER_PREFIX = "74";
+    public static final String COMMAND_MESSAGE_NUM_PREFIX = "75";
+    public static final String COMMAND_MESSAGE_CONTENT_PREFIX = "76";
 
     public static final String COMMAND_ACK1 = "91";
     public static final String COMMAND_ACK2 = "94";
+    public static final String COMMAND_ACK3 = "93";
 
     //Byte length
     public static final int BYTE_LEN_MAC = 6;

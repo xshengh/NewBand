@@ -4,36 +4,21 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <EditText
-        android:id="@+id/et_ip"
+    <TextView
+        android:id="@+id/tv_ip"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:layout_marginTop="20dp"
-        android:hint="IP地址" />
+        android:layout_marginTop="20dp" />
 
-    <EditText
-        android:id="@+id/et_port"
+    <TextView
+        android:id="@+id/tv_port"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:inputType="numberDecimal"
-        android:layout_marginTop="20dp"
-        android:hint="端口号" />
+        android:layout_marginTop="20dp" />
 
-    <Button
-        android:id="@+id/btn_connect"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="连接服务器" />
-    <Button
-        android:id="@+id/btn_disconnect"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:text="断开连接" />
     <Button
         android:id="@+id/btn_test"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="断连测试"/>
 </LinearLayout>
-

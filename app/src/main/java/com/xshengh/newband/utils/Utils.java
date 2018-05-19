@@ -1,10 +1,14 @@
 package com.xshengh.newband.utils;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Toast;
 
 import com.clj.fastble.utils.HexUtil;
 
+import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
@@ -12,6 +16,9 @@ import java.util.concurrent.Executors;
  */
 
 public class Utils {
+    public static final ExecutorService FIX_EXECUTOR = Executors.newFixedThreadPool(5);
+    public static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
+
     public static void showToast(Context context, String toast) {
         Toast.makeText(context, toast, Toast.LENGTH_SHORT).show();
     }
@@ -48,5 +55,18 @@ public class Utils {
             return Integer.parseInt(sb.toString(), 16);
         }
         return -1;
+    }
+
+    public static <T> T[] concat(T[] first, T[] second, int newLength) {
+        T[] result = Arrays.copyOf(first, first.length + second.length);
+        System.arraycopy(second, 0, result, first.length, second.length);
+        return result;
+    }
+    public static void post(Runnable runnable) {
+        MAIN_HANDLER.postDelayed(runnable, 500);
+    }
+
+    public void postDelayed(Runnable runnable, long delay) {
+        MAIN_HANDLER.postDelayed(runnable, 500 + delay);
     }
 }

@@ -4,7 +4,7 @@ android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
     defaultConfig {
-        buildConfigField "boolean", "APP_TEST", "false"
+        buildConfigField "boolean", "APP_TEST", "true"
         applicationId "com.xshengh.newband"
         minSdkVersion 21
         targetSdkVersion 25
@@ -30,4 +30,6 @@ dependencies {
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'com.android.support:design:25.3.1'
     testCompile 'junit:junit:4.12'
+    compile 'com.jakewharton:butterknife:8.8.1'
+    annotationProcessor 'com.jakewharton:butterknife-compiler:8.8.1'
 }

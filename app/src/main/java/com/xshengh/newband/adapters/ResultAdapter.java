@@ -8,6 +8,7 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import com.clj.fastble.data.ScanResult;
+import com.clj.fastble.utils.HexUtil;
 import com.xshengh.newband.R;
 import com.xshengh.newband.device.activities.AnyScanActivity;
 
@@ -65,6 +66,7 @@ public class ResultAdapter extends BaseAdapter {
             holder.txt_name = (TextView) convertView.findViewById(R.id.txt_name);
             holder.txt_mac = (TextView) convertView.findViewById(R.id.txt_mac);
             holder.txt_rssi = (TextView) convertView.findViewById(R.id.txt_rssi);
+            holder.txt_broadcast = (TextView) convertView.findViewById(R.id.broadcast_record);
         }
 
         ScanResult result = scanResultList.get(position);
@@ -75,6 +77,7 @@ public class ResultAdapter extends BaseAdapter {
         holder.txt_name.setText(name);
         holder.txt_mac.setText(mac);
         holder.txt_rssi.setText(String.valueOf(rssi));
+        holder.txt_broadcast.setText(HexUtil.encodeHexStr(result.getScanRecord()));
         return convertView;
     }
 
@@ -82,5 +85,6 @@ public class ResultAdapter extends BaseAdapter {
         TextView txt_name;
         TextView txt_mac;
         TextView txt_rssi;
+        TextView txt_broadcast;
     }
 }
