@@ -81,7 +81,7 @@ public class ResultAdapter extends BaseAdapter {
         return convertView;
     }
 
-    class ViewHolder {
+    private class ViewHolder {
         TextView txt_name;
         TextView txt_mac;
         TextView txt_rssi;

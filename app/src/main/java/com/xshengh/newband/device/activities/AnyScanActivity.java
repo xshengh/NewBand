@@ -41,7 +41,6 @@ public class AnyScanActivity extends AppCompatActivity implements View.OnClickLi
         setContentView(R.layout.activity_any_scan);
         mScanManager = ScanManager.getInstance(this);
         initView();
-        // manual to auto
         scanDevice();
     }
 
