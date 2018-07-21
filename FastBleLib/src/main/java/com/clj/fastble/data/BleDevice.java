@@ -2,28 +2,29 @@ package com.clj.fastble.data;
 
 
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.le.ScanRecord;
 import android.os.Parcel;
 import android.os.Parcelable;
 
 
-public class ScanResult implements Parcelable {
+public class BleDevice implements Parcelable {
 
     private BluetoothDevice mDevice;
     private byte[] mScanRecord;
     private int mRssi;
     private long mTimestampNanos;
 
-    public ScanResult(BluetoothDevice device, int rssi,byte[] scanRecord,
-                      long timestampNanos) {
+    public BleDevice(BluetoothDevice device) {
+        mDevice = device;
+    }
+
+    public BleDevice(BluetoothDevice device, int rssi, byte[] scanRecord, long timestampNanos) {
         mDevice = device;
         mScanRecord = scanRecord;
         mRssi = rssi;
         mTimestampNanos = timestampNanos;
     }
 
-
-    protected ScanResult(Parcel in) {
+    protected BleDevice(Parcel in) {
         mDevice = in.readParcelable(BluetoothDevice.class.getClassLoader());
         mScanRecord = in.createByteArray();
         mRssi = in.readInt();
@@ -43,17 +44,35 @@ public class ScanResult implements Parcelable {
         return 0;
     }
 
-    public static final Creator<ScanResult> CREATOR = new Creator<ScanResult>() {
+    public static final Creator<BleDevice> CREATOR = new Creator<BleDevice>() {
         @Override
-        public ScanResult createFromParcel(Parcel in) {
-            return new ScanResult(in);
+        public BleDevice createFromParcel(Parcel in) {
+            return new BleDevice(in);
         }
 
         @Override
-        public ScanResult[] newArray(int size) {
-            return new ScanResult[size];
+        public BleDevice[] newArray(int size) {
+            return new BleDevice[size];
         }
     };
+
+    public String getName() {
+        if (mDevice != null)
+            return mDevice.getName();
+        return null;
+    }
+
+    public String getMac() {
+        if (mDevice != null)
+            return mDevice.getAddress();
+        return null;
+    }
+
+    public String getKey() {
+        if (mDevice != null)
+            return mDevice.getName() + mDevice.getAddress();
+        return "";
+    }
 
     public BluetoothDevice getDevice() {
         return mDevice;

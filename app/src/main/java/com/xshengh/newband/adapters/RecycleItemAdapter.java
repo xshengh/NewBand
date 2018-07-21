@@ -7,7 +7,6 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import com.clj.fastble.data.ScanResult;
 import com.xshengh.newband.R;
 import com.xshengh.newband.models.DeviceInfo;
 import com.xshengh.newband.utils.Utils;

@@ -1,7 +1,6 @@
 package com.xshengh.newband.device.activities;
 
 import android.app.Activity;
-import android.bluetooth.BluetoothGattCharacteristic;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -10,12 +9,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.clj.fastble.conn.BleCharacterCallback;
-import com.clj.fastble.data.ScanResult;
-import com.clj.fastble.exception.BleException;
-import com.clj.fastble.utils.HexUtil;
 import com.xshengh.newband.R;
-import com.xshengh.newband.utils.Constants;
 
 public class ConnectTestActivity extends Activity {
 

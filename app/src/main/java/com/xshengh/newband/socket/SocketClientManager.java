@@ -12,6 +12,8 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 
+import io.reactivex.Observer;
+
 /**
  * Created by xshengh on 17/7/2.
  */
@@ -67,7 +69,7 @@ public class SocketClientManager {
                                         DeviceInfo device = new DeviceInfo();
                                         i += device.unpack(i, content);
                                         devices.add(device);
-                                        System.out.println("------ size : " + devices.size() + ", list : " + devices);
+                                        System.out.println("----Received devices size : " + devices.size());
                                     }
                                     if (dataReceiveCallback != null) {
                                         dataReceiveCallback.onDataReceive(devices);
@@ -90,11 +92,11 @@ public class SocketClientManager {
                 }
             }
         });
-   }
+    }
 
-    public synchronized void sendData(byte[] bytes) {
+    public synchronized boolean sendData(byte[] bytes) {
         if (isConnected) {
-            System.out.println("------ isConnected : " + socket.isConnected() + ", " +
+            System.out.println("----Socket isConnected : " + socket.isConnected() + ", " +
                     "isOutputShutdown : " + socket.isOutputShutdown());
             if (socket.isConnected() && !socket.isOutputShutdown()) {
                 try {
@@ -102,12 +104,14 @@ public class SocketClientManager {
                         OutputStream out = socket.getOutputStream();
                         out.write(bytes, 0, bytes.length);
                         out.flush();
+                        return true;
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
+        return false;
     }
 
     public void setConnectCallback(SocketConnectCallback connectCallback) {
@@ -155,5 +159,9 @@ public class SocketClientManager {
 
     public interface DataReceiveCallback {
         void onDataReceive(ArrayList<DeviceInfo> devices);
+    }
+
+    public interface DataSendCallback {
+        void onFinished();
     }
 }

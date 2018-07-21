@@ -7,10 +7,9 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import com.clj.fastble.data.ScanResult;
+import com.clj.fastble.data.BleDevice;
 import com.clj.fastble.utils.HexUtil;
 import com.xshengh.newband.R;
-import com.xshengh.newband.device.activities.AnyScanActivity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,31 +21,31 @@ import java.util.List;
 public class ResultAdapter extends BaseAdapter {
 
     private Context context;
-    private List<ScanResult> scanResultList;
+    private List<BleDevice> BleDeviceList;
 
     public ResultAdapter(Context context) {
         this.context = context;
-        scanResultList = new ArrayList<>();
+        BleDeviceList = new ArrayList<>();
     }
 
-    public void addResult(ScanResult result) {
-        scanResultList.add(result);
+    public void addResult(BleDevice result) {
+        BleDeviceList.add(result);
     }
 
     public void clear() {
-        scanResultList.clear();
+        BleDeviceList.clear();
     }
 
     @Override
     public int getCount() {
-        return scanResultList.size();
+        return BleDeviceList.size();
     }
 
     @Override
-    public ScanResult getItem(int position) {
-        if (position > scanResultList.size())
+    public BleDevice getItem(int position) {
+        if (position > BleDeviceList.size())
             return null;
-        return scanResultList.get(position);
+        return BleDeviceList.get(position);
     }
 
     @Override
@@ -69,7 +68,7 @@ public class ResultAdapter extends BaseAdapter {
             holder.txt_broadcast = (TextView) convertView.findViewById(R.id.broadcast_record);
         }
 
-        ScanResult result = scanResultList.get(position);
+        BleDevice result = BleDeviceList.get(position);
         BluetoothDevice device = result.getDevice();
         String name = device.getName();
         String mac = device.getAddress();
@@ -77,7 +76,7 @@ public class ResultAdapter extends BaseAdapter {
         holder.txt_name.setText(name);
         holder.txt_mac.setText(mac);
         holder.txt_rssi.setText(String.valueOf(rssi));
-        holder.txt_broadcast.setText(HexUtil.encodeHexStr(result.getScanRecord()));
+//        holder.txt_broadcast.setText(HexUtil.encodeHexStr(result.getScanRecord()));
         return convertView;
     }
 

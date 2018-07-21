@@ -3,6 +3,7 @@ package com.xshengh.newband.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.clj.fastble.data.BleDevice;
 import com.clj.fastble.utils.HexUtil;
 import com.xshengh.newband.utils.Constants;
 import com.xshengh.newband.utils.Utils;
@@ -24,6 +25,15 @@ public class DeviceInfo implements Parcelable {
     private int status;
     private int retryCount;
     private int exerciseOnOff;
+    private transient BleDevice device;
+
+    public BleDevice getDevice() {
+        return device;
+    }
+
+    public void setDevice(BleDevice device) {
+        this.device = device;
+    }
 
     public byte getCtime() {
         return ctime;
@@ -162,11 +172,11 @@ public class DeviceInfo implements Parcelable {
         if (content != null) {
             byte[] macBytes = Arrays.copyOfRange(content, i, i += Constants.BYTE_LEN_MAC);
             this.mac = Utils.macWithColon(HexUtil.encodeHexStr(macBytes, false));
-            System.out.println("-------mac :" + mac);
+            System.out.println("----Received mac :" + mac);
             this.alarm = Arrays.copyOfRange(content, i, i += Constants.BYTE_LEN_ALARM);
-            System.out.println("-------alarm : " + Arrays.toString(alarm));
+            System.out.println("----Received alarm : " + Arrays.toString(alarm));
             this.exerciseOnOff = content[i++];
-            System.out.println("-------exercise : " + this.exerciseOnOff);
+            System.out.println("----Received exercise : " + this.exerciseOnOff);
         }
         return i;
     }
@@ -183,5 +193,22 @@ public class DeviceInfo implements Parcelable {
         dest.writeByte(ctime);
         dest.writeByte(wtime);
         dest.writeInt(exerciseOnOff);
+    }
+
+    @Override
+    public String toString() {
+        return "DeviceInfo{" +
+                "mac='" + mac + '\'' +
+                ", rate=" + Arrays.toString(rate) +
+                ", step=" + Arrays.toString(step) +
+                ", cal=" + Arrays.toString(cal) +
+                ", alarm=" + Arrays.toString(alarm) +
+                ", ctime=" + ctime +
+                ", wtime=" + wtime +
+                ", status=" + status +
+                ", retryCount=" + retryCount +
+                ", exerciseOnOff=" + exerciseOnOff +
+                ", device=" + device +
+                '}';
     }
 }

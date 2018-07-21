@@ -7,7 +7,7 @@ import com.xshengh.newband.BuildConfig;
  */
 
 public class Constants {
-    public static final String HOST = BuildConfig.APP_TEST ? "192.168.0.102" : "192.168.12.151";
+    public static final String HOST = BuildConfig.APP_TEST ? "192.168.0.103" : "192.168.12.151";
     public static final int PORT = BuildConfig.APP_TEST ? 9999 : 18087;
     public static final String UUID_SERVICE = "00005301-0000-0041-4C50-574953450000";
     public static final String UUID_READ_NOTIFY = "00005303-0000-0041-4C50-574953450000";

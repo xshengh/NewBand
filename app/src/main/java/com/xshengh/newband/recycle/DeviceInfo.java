@@ -2,13 +2,13 @@ package com.xshengh.newband.recycle;
 
 import android.bluetooth.BluetoothDevice;
 
-import com.clj.fastble.data.ScanResult;
+import com.clj.fastble.data.BleDevice;
 
 /**
  * Created by xshengh on 17/4/2.
  */
 
-public class DeviceInfo extends ScanResult {
+public class DeviceInfo extends BleDevice {
     private int heartRate;
     private boolean testing;
     private int steps;

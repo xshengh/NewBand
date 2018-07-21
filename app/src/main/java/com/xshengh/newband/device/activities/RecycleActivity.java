@@ -6,7 +6,6 @@ import android.os.Looper;
 import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
 
@@ -23,10 +22,23 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.functions.Consumer;
+import io.reactivex.schedulers.Schedulers;
+
 public class RecycleActivity extends AppCompatActivity {
 
-    private Button mLoopStartBtn;
-    private Button mUploadBtn;
+    @BindView(R.id.btn_recycle_start)
+    Button mLoopStartBtn;
+    @BindView(R.id.btn_upload_data)
+    Button mUploadBtn;
     private RecycleItemAdapter mResultAdapter;
     private RecycleManager mRecycleManager;
     private Handler mMainHandler = new Handler(Looper.getMainLooper());
@@ -36,25 +48,13 @@ public class RecycleActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_recycle);
-        mRecycleManager = RecycleManager.getInstance(this);
+        ButterKnife.bind(this);
+        mRecycleManager = RecycleManager.getInstance();
         initView();
     }
 
     private void initView() {
-        mLoopStartBtn = (Button) findViewById(R.id.btn_recycle_start);
-        mLoopStartBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-            }
-        });
-        mUploadBtn = (Button) findViewById(R.id.btn_upload_data);
         mUploadBtn.setEnabled(false);
-        mUploadBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startUpload();
-            }
-        });
         ListView result = (ListView) findViewById(R.id.list_recycle_result);
         mResultAdapter = new RecycleItemAdapter(this);
         result.setAdapter(mResultAdapter);
@@ -67,9 +67,10 @@ public class RecycleActivity extends AppCompatActivity {
         }
     }
 
-    private void startUpload() {
+    @OnClick(R.id.btn_upload_data)
+    void startUpload() {
         int len = mResultAdapter.getCount();
-        byte[] data = new byte[len * Constants.BYTE_SIZE_DATA_LIST + 1];
+        final byte[] data = new byte[len * Constants.BYTE_SIZE_DATA_LIST + 1];
         int index = 0;
         data[index++] = (byte) 0xFF;
         for (int i = 0; i < len; i++) {
@@ -78,8 +79,8 @@ public class RecycleActivity extends AppCompatActivity {
             if (!TextUtils.isEmpty(mac)) {
                 String rawMac = mac.replace(":", "");
                 byte[] macByte = HexUtil.hexStringToBytes(rawMac);
-                System.out.println("---- mac : " + rawMac);
-                System.out.println("---- byte : " + Arrays.toString(macByte));
+                System.out.println("----Upload2 mac: " + rawMac);
+                System.out.println("----Upload2 byte : " + Arrays.toString(macByte));
                 for (byte aMacByte : macByte) {
                     data[index++] = aMacByte;
                 }
@@ -97,14 +98,26 @@ public class RecycleActivity extends AppCompatActivity {
                 }
                 data[index++] = deviceInfo.getCtime();
                 data[index++] = deviceInfo.getWtime();
-                System.out.println("---- byte : " + HexUtil.encodeHexStr(data, false));
+                System.out.println("----Upload2 hex : " + HexUtil.encodeHexStr(data, false));
             }
         }
-        SocketClientManager.getInstance().sendData(data);
-        Utils.showToast(RecycleActivity.this, "上传成功");
-        mUploadBtn.setEnabled(false);
-        setResult(RESULT_OK);
-        finish();
+        Observable.create(new ObservableOnSubscribe<Boolean>() {
+            @Override
+            public void subscribe(@NonNull ObservableEmitter<Boolean> observableEmitter) throws Exception {
+                observableEmitter.onNext(SocketClientManager.getInstance().sendData(data));
+                observableEmitter.onComplete();
+            }
+        }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(new Consumer<Boolean>() {
+            @Override
+            public void accept(Boolean success) throws Exception {
+                if (success) {
+                    Utils.showToast(RecycleActivity.this, "上传成功");
+                }
+                mUploadBtn.setEnabled(false);
+                setResult(RESULT_OK);
+                finish();
+            }
+        });
     }
 
     private void startRecycle(final LinkedList<DeviceInfo> devices) {
@@ -113,13 +126,13 @@ public class RecycleActivity extends AppCompatActivity {
             mRecycleManager.setCallback(new RecycleManager.RecycleCallback() {
                 long connectTime = 0L;
                 long workTime = 0L;
+
                 @Override
                 public void onStart() {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             mResultAdapter.clear();
-                            System.out.println("------ size : " + devices.size() + ", list : " + devices);
                             mResultAdapter.addResult(devices);
                             mResultAdapter.notifyDataSetChanged();
                         }
@@ -142,18 +155,9 @@ public class RecycleActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             int ctime = (int) (System.currentTimeMillis() - connectTime) / 1000;
-                            System.out.println("------ connect time : " + ctime);
+                            System.out.println("----Connect time : " + ctime);
                             device.setCtime((byte) ctime);
                             workTime = System.currentTimeMillis();
-                        }
-                    });
-                }
-
-                @Override
-                public void onRecycling(final DeviceInfo device) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
                             device.setStatus(1);
                             mResultAdapter.notifyDataSetChanged();
                         }
@@ -176,23 +180,13 @@ public class RecycleActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onFetchRate(final DeviceInfo device, final byte[] rate) {
+                public void onFetchStatistic(final DeviceInfo device, final byte[] rate, final byte[] step, final byte[] cal) {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             if (rate != null) {
                                 device.setRate(rate);
-                                mResultAdapter.notifyDataSetChanged();
                             }
-                        }
-                    });
-                }
-
-                @Override
-                public void onFetchStepAndCal(final DeviceInfo device, final byte[] step, final byte[] cal) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
                             if (step != null) {
                                 device.setStep(step);
                             }
@@ -212,7 +206,7 @@ public class RecycleActivity extends AppCompatActivity {
                             device.setStatus(2);
                             mResultAdapter.notifyDataSetChanged();
                             int wtime = (int) (System.currentTimeMillis() - workTime) / 1000;
-                            System.out.println("------ work time : " + wtime);
+                            System.out.println("----Work time : " + wtime);
                             device.setWtime((byte) wtime);
                         }
                     });
@@ -241,7 +235,9 @@ public class RecycleActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mRecycleManager.stopRecycle();
+        if (!mRecycleManager.isStopped()) {
+            mRecycleManager.stopRecycle();
+        }
         mMainHandler.removeCallbacksAndMessages(null);
     }
 }
