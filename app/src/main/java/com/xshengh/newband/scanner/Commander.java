@@ -85,16 +85,19 @@ class Commander {
                 System.out.println("----OnCharacteristicChanged : " + HexUtil.encodeHexStr(res) + ", length :" + res.length);
                 if (res.length >= 1) {
                     String prefix = HexUtil.extractData(res, 0);
-                    System.out.println("----Command : " + mCurCommand + ", ack : " + prefix);
+                    
                     if (Constants.COMMAND_ACK1.equalsIgnoreCase(prefix) && !Constants.COMMAND_MANUAL_HR.equals(mCurCommand) && !Constants.COMMAND_SEND_STEP.equals(mCurCommand)) {
+                        System.out.println("----Command : " + mCurCommand + ", ack : " + prefix);
                         if (mCurCallback != null) {
                             mCurCallback.onSuccess();
                         }
                     } else if (Constants.COMMAND_ACK3.equalsIgnoreCase(prefix) || Constants.COMMAND_ACK2.equalsIgnoreCase(prefix)) {
+                        System.out.println("----Command : " + mCurCommand + ", ack : " + prefix);
                         if (mCurCallback != null) {
                             mCurCallback.onSuccess();
                         }
                     } else if (mFetchStatistic && Constants.RETURN_RATE_PREFIX.equalsIgnoreCase(prefix) && res.length == 16) {
+                        System.out.println("----Command : " + mCurCommand + ", ack : " + prefix);
                         if (mCurCallback != null) {
                             mCurCallback.onSuccess(Arrays.copyOfRange(res, 15, 16), Arrays.copyOfRange(res, 3, 7), Arrays.copyOfRange(res, 7, 9));
                         }
