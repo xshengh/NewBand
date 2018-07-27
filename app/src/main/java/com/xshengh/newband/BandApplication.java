@@ -36,7 +36,6 @@ public class BandApplication extends Application {
                 Process.killProcess(Process.myPid());
             }
         }
-        ;
     }
 
     public static BandApplication getInstance() {

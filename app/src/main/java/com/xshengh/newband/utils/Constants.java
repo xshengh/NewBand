@@ -9,6 +9,14 @@ import com.xshengh.newband.BuildConfig;
 public class Constants {
     public static final String HOST = BuildConfig.APP_TEST ? "192.168.0.103" : "192.168.12.151";
     public static final int PORT = BuildConfig.APP_TEST ? 9999 : 18087;
+
+    public static final int CODE_INIT = 0x01;
+    public static final int CODE_CORRECT_TIME = CODE_INIT + 1;
+    public static final int CODE_EXERCISE_ON = CODE_CORRECT_TIME + 1;
+    public static final int CODE_EXERCISE_OFF = CODE_EXERCISE_ON + 1;
+    public static final int CODE_SETUP_ALARM = CODE_EXERCISE_OFF + 1;
+    public static final int CODE_FETCH_STATISTIC = CODE_SETUP_ALARM + 1;
+    public static final int CODE_DISCONNECT = CODE_FETCH_STATISTIC + 1;
     public static final String UUID_SERVICE = "00005301-0000-0041-4C50-574953450000";
     public static final String UUID_READ_NOTIFY = "00005303-0000-0041-4C50-574953450000";
     public static final String UUID_WRITE = "00005302-0000-0041-4C50-574953450000";

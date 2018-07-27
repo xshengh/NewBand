@@ -1,8 +1,18 @@
+
 package com.xshengh.newband.scanner;
+
+import static com.xshengh.newband.utils.Constants.CODE_CORRECT_TIME;
+import static com.xshengh.newband.utils.Constants.CODE_DISCONNECT;
+import static com.xshengh.newband.utils.Constants.CODE_EXERCISE_OFF;
+import static com.xshengh.newband.utils.Constants.CODE_EXERCISE_ON;
+import static com.xshengh.newband.utils.Constants.CODE_FETCH_STATISTIC;
+import static com.xshengh.newband.utils.Constants.CODE_INIT;
+import static com.xshengh.newband.utils.Constants.CODE_SETUP_ALARM;
 
 import android.bluetooth.BluetoothGatt;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 
 import com.clj.fastble.BleManager;
 import com.clj.fastble.callback.BleScanAndConnectCallback;
@@ -16,15 +26,13 @@ import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Created by xshengh on 17/7/9.
- * 轮询单例类
+ * Created by xshengh on 17/7/9. 轮询单例类
  */
 
 public class RecycleManager {
     private static RecycleManager sRecycleManger = new RecycleManager();
     private BleManager mBleManager = BleManager.getInstance();
     private DeviceInfo mCurrentDevice;
-    private Handler mMainHandler = new Handler(Looper.getMainLooper());
     private RecycleCallback mCallback;
     private ConcurrentLinkedQueue<DeviceInfo> mDevices = new ConcurrentLinkedQueue<>();
     private volatile boolean isStopped = false;
@@ -33,11 +41,49 @@ public class RecycleManager {
     private Runnable mStatisticTimeout = new Runnable() {
         @Override
         public void run() {
-            System.out.println("---- step time out");
-            closeConnect();
+            System.out.println("----Statistic time out");
+            sendMessageDelay500(mMainHandler.obtainMessage(CODE_DISCONNECT));
         }
     };
-
+    private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case CODE_INIT: {
+                    if (msg.obj instanceof BleDevice) {
+                        startWork((BleDevice) msg.obj);
+                    }
+                    break;
+                }
+                case CODE_CORRECT_TIME: {
+                    correctTime();
+                    break;
+                }
+                case CODE_EXERCISE_ON: {
+                    openExerciseMode();
+                    break;
+                }
+                case CODE_EXERCISE_OFF: {
+                    exitExerciseMode();
+                    break;
+                }
+                case CODE_SETUP_ALARM: {
+                    setupAlarm();
+                    break;
+                }
+                case CODE_FETCH_STATISTIC: {
+                    fetchStatistic();
+                    break;
+                }
+                case CODE_DISCONNECT: {
+                    closeConnect();
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    };
 
     private RecycleManager() {
         mCommander = new Commander();
@@ -80,7 +126,8 @@ public class RecycleManager {
                 if (mCallback != null) {
                     mCallback.onStartConnect(mCurrentDevice);
                 }
-                BleScanRuleConfig config = new BleScanRuleConfig.Builder().setScanTimeOut(7000).setDeviceMac(mCurrentDevice.getMac()).build();
+                BleScanRuleConfig config = new BleScanRuleConfig.Builder().setScanTimeOut(7000)
+                        .setDeviceMac(mCurrentDevice.getMac()).build();
                 mBleManager.initScanRule(config);
                 mBleManager.scanAndConnect(new BleScanAndConnectCallback() {
                     @Override
@@ -96,7 +143,7 @@ public class RecycleManager {
 
                     @Override
                     public void onConnectFail(BleDevice bleDevice, BleException exception) {
-                        System.out.println("----- onConnectFail : " + exception);
+                        System.out.println("----OnConnectFail : " + exception);
                         if (mCallback != null) {
                             mCallback.onRecycleFailed(mCurrentDevice);
                         }
@@ -104,17 +151,19 @@ public class RecycleManager {
                     }
 
                     @Override
-                    public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt, int status) {
+                    public void onConnectSuccess(BleDevice bleDevice, BluetoothGatt gatt,
+                            int status) {
                         if (mCallback != null) {
                             mCallback.onConnectSuccess(mCurrentDevice);
                         }
                         mCurrentDevice.setDevice(bleDevice);
-                        startWork(bleDevice);
+                        sendMessageDelay500(mMainHandler.obtainMessage(CODE_INIT, bleDevice));
                     }
 
                     @Override
-                    public void onDisConnected(boolean isActiveDisConnected, BleDevice device, BluetoothGatt gatt, int status) {
-                        System.out.println("----onDisConnected");
+                    public void onDisConnected(boolean isActiveDisConnected, BleDevice device,
+                            BluetoothGatt gatt, int status) {
+                        System.out.println("----OnDisConnected");
                         connectNext();
                     }
 
@@ -140,7 +189,8 @@ public class RecycleManager {
         mCommander.init(bleDevice, new CommandCallbackAdapter() {
             @Override
             public void onSuccess(byte[]... b) {
-                correctTime();
+                Message msg = mMainHandler.obtainMessage(CODE_CORRECT_TIME);
+                sendMessageDelay500(msg);
             }
         });
     }
@@ -150,19 +200,21 @@ public class RecycleManager {
             @Override
             public void onSuccess(byte[]... b) {
                 int onOff = mCurrentDevice.getExerciseOnOff();
+                Message msg;
                 if (onOff == 1) {
-                    openExerciseMode();
+                    msg = mMainHandler.obtainMessage(CODE_EXERCISE_ON);
                 } else if (onOff == 0) {
-                    exitExerciseMode();
+                    msg = mMainHandler.obtainMessage(CODE_EXERCISE_OFF);
                 } else if (onOff == 2) {
                     if (mCurrentDevice.getAlarm() != null) {
-                        setupAlarm();
+                        msg = mMainHandler.obtainMessage(CODE_SETUP_ALARM);
                     } else {
-                        fetchStatistic();
+                        msg = mMainHandler.obtainMessage(CODE_FETCH_STATISTIC);
                     }
                 } else {
-                    closeConnect();
+                    msg = mMainHandler.obtainMessage(CODE_DISCONNECT);
                 }
+                sendMessageDelay500(msg);
             }
         });
     }
@@ -181,20 +233,21 @@ public class RecycleManager {
                     if (mCallback != null) {
                         mCallback.onSetAlarm(mCurrentDevice);
                     }
-                    fetchStatistic();
+                    sendMessageDelay500(mMainHandler.obtainMessage(CODE_FETCH_STATISTIC));
                 }
             });
         } else {
-            fetchStatistic();
+            sendMessageDelay500(mMainHandler.obtainMessage(CODE_FETCH_STATISTIC));
         }
-        System.out.println("----Alarm open : " + open + ", hour : " + hour + ", minute : " + minute);
+        System.out
+                .println("----Alarm open : " + open + ", hour : " + hour + ", minute : " + minute);
     }
 
     private void openExerciseMode() {
         mCommander.openExerciseMode(new CommandCallbackAdapter() {
             @Override
             public void onSuccess(byte[]... b) {
-                closeConnect();
+                sendMessageDelay500(mMainHandler.obtainMessage(CODE_DISCONNECT));
             }
         });
     }
@@ -203,7 +256,7 @@ public class RecycleManager {
         mCommander.exitExerciseMode(new CommandCallbackAdapter() {
             @Override
             public void onSuccess(byte[]... b) {
-                closeConnect();
+                sendMessageDelay500(mMainHandler.obtainMessage(CODE_DISCONNECT));
             }
         });
     }
@@ -212,11 +265,12 @@ public class RecycleManager {
         post(new Runnable() {
             @Override
             public void run() {
-                mMessageSender.sendMessage("hello world\0".getBytes(), new CommandCallbackAdapter() {
-                    @Override
-                    public void onSuccess(byte[]... b) {
-                    }
-                });
+                mMessageSender.sendMessage("hello world\0".getBytes(),
+                        new CommandCallbackAdapter() {
+                            @Override
+                            public void onSuccess(byte[]... b) {
+                            }
+                        });
             }
         });
     }
@@ -230,16 +284,20 @@ public class RecycleManager {
                     mCallback.onFetchStatistic(mCurrentDevice, b[0], b[1], b[2]);
                     mCallback.onRecycleFinish(mCurrentDevice);
                 }
-                closeConnect();
+                sendMessageDelay500(mMainHandler.obtainMessage(CODE_DISCONNECT));
             }
         });
         postDelayed(mStatisticTimeout, 7000);
     }
 
     private void closeConnect() {
-//        mBleManager.disconnect(mCurrentDevice.getDevice());
+        // mBleManager.disconnect(mCurrentDevice.getDevice());
         mCommander.closeConnect();
         mBleManager.clearCharacterCallback(mCurrentDevice.getDevice());
+    }
+
+    private void sendMessageDelay500(Message msg) {
+        mMainHandler.sendMessageDelayed(msg, 500);
     }
 
     private void post(Runnable runnable) {
@@ -248,17 +306,6 @@ public class RecycleManager {
 
     private void postDelayed(Runnable runnable, long delay) {
         mMainHandler.postDelayed(runnable, 500 + delay);
-    }
-
-    private abstract class CommandCallbackAdapter implements CommandCallback {
-        @Override
-        public void onFailure(BleException exception) {
-            System.out.println("------- onFailure exception : " + exception);
-            if (mCallback != null) {
-                mCallback.onRecycleFailed(mCurrentDevice);
-            }
-            closeConnect();
-        }
     }
 
     public interface RecycleCallback {
@@ -277,5 +324,16 @@ public class RecycleManager {
         void onRecycleFinish(DeviceInfo device);
 
         void onComplete();
+    }
+
+    private abstract class CommandCallbackAdapter implements CommandCallback {
+        @Override
+        public void onFailure(BleException exception) {
+            System.out.println("----OnFailure exception : " + exception);
+            if (mCallback != null) {
+                mCallback.onRecycleFailed(mCurrentDevice);
+            }
+            sendMessageDelay500(mMainHandler.obtainMessage(CODE_DISCONNECT));
+        }
     }
 }
