@@ -227,7 +227,7 @@ class Commander {
         int hour = cal.get(Calendar.HOUR_OF_DAY);
         int date = cal.get(Calendar.DAY_OF_MONTH);
         int month = cal.get(Calendar.MONTH) + 1;
-        int year = cal.get(Calendar.YEAR);
+        int year = cal.get(Calendar.YEAR) - 2000;
         System.out.println("----Get current time byte array : sec : " + sec + ", min : " + min + ", hour : " + hour + ", date : " + date + ", month : " + month + ", year : " + year);
         byte[] time = new byte[6];
         time[0] = (byte) sec;

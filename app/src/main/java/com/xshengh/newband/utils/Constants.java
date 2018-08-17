@@ -7,7 +7,7 @@ import com.xshengh.newband.BuildConfig;
  */
 
 public class Constants {
-    public static final String HOST = BuildConfig.APP_TEST ? "192.168.0.103" : "192.168.12.151";
+    public static final String HOST = BuildConfig.APP_TEST ? "192.168.0.104" : "192.168.12.151";
     public static final int PORT = BuildConfig.APP_TEST ? 9999 : 18087;
 
     public static final int CODE_INIT = 0x01;
